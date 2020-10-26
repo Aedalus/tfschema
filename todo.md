@@ -1,0 +1,5 @@
+- Get descriptions of resources
+- Get descriptions of fields
+- Block attributes
+- Data Sources
+- Pull provider schema from CLI
