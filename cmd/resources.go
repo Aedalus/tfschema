@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"github.com/fatih/color"
 	"io/ioutil"
 	"log"
 	"os"
@@ -62,19 +63,57 @@ func getResourceDetails(providerSchemas *[]v1schema.TFProviderSchema, resourceTy
 
 	// If foundResource is not nil, we found a valid resource
 	if foundResource != nil {
-		fmt.Println(strings.Repeat("-", 80))
-		fmt.Printf("%s - %s\n", foundProvider, foundResource.Type)
-		fmt.Println(strings.Repeat("-", 80))
-		fmt.Println("Attributes:")
-		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
-		for _, attr := range foundResource.Attributes {
-			fmt.Fprintf(w, "\t%s\t%s\n", attr.Name, strings.Join(attr.Type, ","))
+		fmt.Println(color.HiCyanString(strings.Repeat("-", 80)))
+		fmt.Printf(color.HiYellowString(" %s - %s\n"), foundProvider, foundResource.Type)
+		fmt.Println(color.HiCyanString(strings.Repeat("-", 80)))
+		if foundResource.Description != "" {
+			wrappedDesc := wrapperLong(foundResource.Description)
+			fmt.Printf("%s\n", color.HiBlackString(wrappedDesc))
+			fmt.Println(strings.Repeat("-", 80))
 		}
+		fmt.Printf("--- %s -----------------------------------------------------------------\n", color.HiYellowString("Attributes"))
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
+
+		sortedAttr := foundResource.SortAttributesByName()
+		// Write the non-computed first
+		for _, attr := range sortedAttr {
+			if attr.Computed == false {
+				formatResourceAttr(w, attr)
+			}
+		}
+
+		ln := fmt.Sprintf("--- %s -----------------------------------------------------------------\n", color.HiYellowString("Computed"))
+		w.Write([]byte(ln))
+		// Then the computed
+		for _, attr := range sortedAttr {
+			if attr.Computed == true {
+				formatResourceAttr(w, attr)
+			}
+		}
+
 		w.Flush()
 	} else {
 		log.Fatalf("Resource %s not found", resourceType)
 	}
 }
+
+func formatResourceAttr(w *tabwriter.Writer, attr v1schema.TFScalarAttribute) {
+	// Optional Text
+
+	rqText := " "
+	if attr.Required {
+		rqText = "*"
+	}
+
+	fmt.Fprintf(w, "\t%s\t%s\t%s\n", attr.Name, rqText, color.HiBlueString(attr.Type))
+	if attr.Description != "" {
+		wrappedDesc := wrapper(attr.Description)
+		for _, ln := range strings.Split(wrappedDesc, "\n") {
+			fmt.Fprintf(w, "\t\t%s\n", color.HiBlackString(ln))
+		}
+	}
+}
+
 func listAllResources(schemas *[]v1schema.TFProviderSchema) {
 	// They specified a schema file
 
@@ -85,5 +124,4 @@ func listAllResources(schemas *[]v1schema.TFProviderSchema) {
 			fmt.Printf("  %s\n", resource.Type)
 		}
 	}
-
 }
