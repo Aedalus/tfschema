@@ -12,9 +12,10 @@ type TFProviderSchema struct {
 }
 
 type TFResourceSchema struct {
-	Type        string              `json:"type"`
-	Description string              `json: "description"`
-	Attributes  []TFScalarAttribute `json:"attributes"`
+	Type            string              `json:"type"`
+	Description     string              `json: "description"`
+	Attributes      []TFScalarAttribute `json:"attributes"`
+	AttributeBlocks []TFBlockAttribute  `json:"attribute_blocks"`
 }
 
 type TFScalarAttribute struct {
@@ -25,16 +26,26 @@ type TFScalarAttribute struct {
 	Description string `json:"description"`
 }
 
+type TFBlockAttribute struct {
+	Name            string              `json:"name"`
+	Required        bool                `json:"required"`
+	Computed        bool                `json:"computed"`
+	Description     bool                `json:"description"`
+	Attributes      []TFScalarAttribute `json:"attributes"`
+	AttributeBlocks []TFBlockAttribute  `json:"attribute_blocks"`
+}
+
+// Easily find and return a resource
 func (s TFProviderSchema) GetResource(resourceType string) *TFResourceSchema {
 	for _, resource := range s.Resources {
 		if resource.Type == resourceType {
 			return &resource
 		}
 	}
-
 	return nil
 }
 
+// Sort function for deterministic results
 type SortAttrByName []TFScalarAttribute
 
 func (a SortAttrByName) Len() int           { return len(a) }

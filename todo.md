@@ -4,3 +4,5 @@
 - [ ] Data Sources
 - [ ] Pull provider schema from CLI
 - [x] Computed attributes
+- [ ] Build Makefile
+- [ ] Readme

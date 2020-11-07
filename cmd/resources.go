@@ -17,10 +17,12 @@ func init() {
 
 	// Bind flags
 	resourcesCmd.Flags().StringVarP(&resourcesTFFile, "file", "f", "", "schema.json to read from")
+	resourcesCmd.Flags().BoolVarP(&resourcesVerbose, "verbose", "v", false, "prints additional information like computed attributes")
 }
 
 // Flags
 var resourcesTFFile string
+var resourcesVerbose bool
 
 var resourcesCmd = &cobra.Command{
 	Use:   "resources [specific resource]",
@@ -82,12 +84,14 @@ func getResourceDetails(providerSchemas *[]v1schema.TFProviderSchema, resourceTy
 			}
 		}
 
-		ln := fmt.Sprintf("--- %s -----------------------------------------------------------------\n", color.HiYellowString("Computed"))
-		w.Write([]byte(ln))
-		// Then the computed
-		for _, attr := range sortedAttr {
-			if attr.Computed == true {
-				formatResourceAttr(w, attr)
+		if resourcesVerbose {
+			ln := fmt.Sprintf("--- %s -----------------------------------------------------------------\n", color.HiYellowString("Computed"))
+			w.Write([]byte(ln))
+			// Then the computed
+			for _, attr := range sortedAttr {
+				if attr.Computed == true {
+					formatResourceAttr(w, attr)
+				}
 			}
 		}
 
