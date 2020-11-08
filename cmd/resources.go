@@ -29,17 +29,32 @@ var resourcesCmd = &cobra.Command{
 	Short: "Prints information about resources",
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
-		var providerSchemas *[]v1schema.TFProviderSchema
-		if resourcesTFFile != "" {
-			jsonBytes, err := ioutil.ReadFile(resourcesTFFile)
-			if err != nil {
-				log.Fatalf("error reading schema file: %v", err)
-			}
 
-			providerSchemas, err = v1schema.ParseV1Schema(jsonBytes)
+		// Get the schema from file or local
+		var schemaBytes []byte
+		if resourcesTFFile != "" {
+			file, err := ioutil.ReadFile(resourcesTFFile)
 			if err != nil {
-				log.Fatalf("error parsing schema file: %v", err)
+				fmt.Printf("error reading schema file: %v\n", err)
+				os.Exit(1)
+			} else {
+				schemaBytes = file
 			}
+		} else {
+			file, err := getLocalProvidersSchema()
+			if err != nil {
+				fmt.Printf("error getting local providers: %v\n", err)
+				os.Exit(1)
+			} else {
+				schemaBytes = []byte(file)
+			}
+		}
+
+		// Parse the schema
+		var providerSchemas *[]v1schema.TFProviderSchema
+		providerSchemas, err := v1schema.ParseV1Schema(schemaBytes)
+		if err != nil {
+			log.Fatalf("error parsing schema file: %v", err)
 		}
 
 		if len(args) == 0 {
@@ -113,7 +128,7 @@ func formatResourceAttr(w *tabwriter.Writer, attr v1schema.TFScalarAttribute) {
 	if attr.Description != "" {
 		wrappedDesc := wrapper(attr.Description)
 		for _, ln := range strings.Split(wrappedDesc, "\n") {
-			fmt.Fprintf(w, "\t\t%s\n", color.HiBlackString(ln))
+			fmt.Fprintf(w, "\t\t\t%s\n", color.HiBlackString(ln))
 		}
 	}
 }
@@ -124,7 +139,7 @@ func listAllResources(schemas *[]v1schema.TFProviderSchema) {
 	for _, schema := range *schemas {
 		providerShort := schema.Provider[strings.LastIndex(schema.Provider, "/")+1:]
 		fmt.Printf("%s (%s)\n", providerShort, schema.Provider)
-		for _, resource := range schema.Resources {
+		for _, resource := range schema.SortResourcesByName() {
 			fmt.Printf("  %s\n", resource.Type)
 		}
 	}

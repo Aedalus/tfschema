@@ -46,6 +46,18 @@ func (s TFProviderSchema) GetResource(resourceType string) *TFResourceSchema {
 }
 
 // Sort function for deterministic results
+type SortResourceByName []TFResourceSchema
+
+func (a SortResourceByName) Len() int           { return len(a) }
+func (a SortResourceByName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a SortResourceByName) Less(i, j int) bool { return strings.Compare(a[i].Type, a[j].Type) < 1 }
+
+func (s TFProviderSchema) SortResourcesByName() []TFResourceSchema {
+	sort.Sort(SortResourceByName(s.Resources))
+	return s.Resources
+}
+
+// Sort function for deterministic results
 type SortAttrByName []TFScalarAttribute
 
 func (a SortAttrByName) Len() int           { return len(a) }

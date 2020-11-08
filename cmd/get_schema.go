@@ -1,10 +1,10 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"github.com/spf13/cobra"
 	"log"
-	"os"
 	"os/exec"
 )
 
@@ -23,24 +23,31 @@ var getSchemaCmd = &cobra.Command{
 	Short: "Executes a 'terraform providers schema'",
 	Args:  cobra.RangeArgs(0, 0),
 	Run: func(cmd *cobra.Command, args []string) {
-		binary, lookErr := exec.LookPath("terraform")
-		if lookErr != nil {
-			fmt.Println("terraform not found on the system")
-			os.Exit(1)
-		}
 
-		tfArgs := []string{"providers", "schema", "-json"}
-
-		out, err := exec.Command(binary, tfArgs...).Output()
+		schema, err := getLocalProvidersSchema()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("error retrieving local providers: %v", err)
 		}
-		outVal := string(out)
-		if outVal == "{\"format_version\":\"0.1\"}\n" {
-			fmt.Println("No providers found. You might have initialized in an empty directory.")
-			os.Exit(1)
-		} else {
-			fmt.Print(outVal)
-		}
+		fmt.Println(schema)
 	},
+}
+
+func getLocalProvidersSchema() (string, error) {
+	binary, lookErr := exec.LookPath("terraform")
+	if lookErr != nil {
+		return "", fmt.Errorf("terraform not found on the system")
+	}
+
+	tfArgs := []string{"providers", "schema", "-json"}
+
+	out, err := exec.Command(binary, tfArgs...).Output()
+	if err != nil {
+		return "", fmt.Errorf("error running terraform: %v", err)
+	}
+	outVal := string(out)
+	if outVal == "{\"format_version\":\"0.1\"}\n" {
+		return "", errors.New("no providers found. you might have initialized in an empty directory")
+	}
+
+	return outVal, nil
 }
